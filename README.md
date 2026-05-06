@@ -253,6 +253,31 @@ The quantum chip found the correct private key `0111` with **56.0% of all shots*
 
 ---
 
+## Backend Selection — Shortest Queue Wins
+
+Three IBM Heron r2 backends are available on the free tier, all identical hardware (156 qubits, heavy-hex topology):
+
+| Backend | Processor | Qubits | 2-qubit error | Readout error | CLOPS |
+|---|---|---|---|---|---|
+| ibm_kingston | Heron r2 | 156 | ~2.6E-3 | ~1.5E-2 | ~310K |
+| ibm_fez | Heron r2 | 156 | 2.62E-3 | 1.508E-2 | 320K |
+| ibm_marrakesh | Heron r2 | 156 | 2.60E-3 | 1.434E-2 | 300K |
+
+Because they are the same chip, result quality is identical across all three. The only meaningful difference is queue wait time. The code automatically picks whichever has the fewest pending jobs at the moment of submission:
+
+```python
+_candidates = [service.backend(b) for b in ("ibm_kingston", "ibm_fez", "ibm_marrakesh")]
+backend     = min(_candidates, key=lambda b: b.status().pending_jobs)
+```
+
+The chosen backend is logged on every run:
+
+```
+Shortest queue chosen: ibm_fez  (pending jobs: 2)
+```
+
+---
+
 ## Lessons Learned from Real Hardware Runs
 
 ### 1. Circuit depth is the hard wall on current hardware

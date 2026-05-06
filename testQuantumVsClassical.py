@@ -238,7 +238,8 @@ QiskitRuntimeService.save_account(
 )
 service       = QiskitRuntimeService(channel="ibm_quantum_platform")
 backends_list = ", ".join(b.name for b in service.backends(operational=True, simulator=False))
-backend       = service.backend("ibm_kingston")
+_candidates   = [service.backend(b) for b in ("ibm_kingston", "ibm_fez", "ibm_marrakesh")]
+backend       = min(_candidates, key=lambda b: b.status().pending_jobs)
 pm            = generate_preset_pass_manager(backend=backend, optimization_level=1)
 isa_circuit   = pm.run(qc)
 
@@ -251,6 +252,7 @@ p("=" * 65)
 p("STEP 3 -- IBM QUANTUM CONNECTION + TRANSPILE")
 p("=" * 65)
 p(f"  Available backends   : {backends_list}")
+p(f"  Shortest queue chosen: {backend.name}  (pending jobs: {backend.status().pending_jobs})")
 p(f"  Post-transpile depth : {isa_circuit.depth()}")
 p(f"  Gate count           : {dict(isa_circuit.count_ops())}")
 if isa_circuit.depth() > 600:
