@@ -187,6 +187,72 @@ LOCAL -- decryption with found d:
 
 ---
 
+## Real End-to-End Test Result (IBM Kingston, 2026-05-06)
+
+The following is the actual output from a live run on IBM's ibm_kingston chip. Key and message were both chosen at random by the program.
+
+```
+05/06/2026 19:01:19[EST]   Key pool index      : 2  (chosen at random)
+05/06/2026 19:01:19[EST]   Message index       : 0  (chosen at random)
+05/06/2026 19:01:19[EST]   Prime p             : 3
+05/06/2026 19:01:19[EST]   Prime q             : 5
+05/06/2026 19:01:19[EST]   Modulus n = p*q     : 15
+05/06/2026 19:01:19[EST]   phi(n)=(p-1)*(q-1)  : 8
+05/06/2026 19:01:19[EST]   Public key  e       : 7    (known to attacker)
+05/06/2026 19:01:19[EST]   Private key d       : 0111 in binary = 7  (HIDDEN from quantum)
+05/06/2026 19:01:19[EST]   Verification e*d mod phi = 1  (must be 1)
+05/06/2026 19:01:19[EST]
+05/06/2026 19:01:19[EST]   Plaintext message   : 'mankind and machine'
+05/06/2026 19:01:19[EST]   Char indices        : [13, 1, 14, 11, 9, 14, 4, 0, 1, 14, 4, 0, 13, 1, 3, 8, 9, 14, 5]
+05/06/2026 19:01:19[EST]   RSA ciphertext      : [7, 1, 14, 11, 9, 14, 4, 0, 1, 14, 4, 0, 7, 1, 12, 2, 9, 14, 5]
+05/06/2026 19:01:19[EST]   Attacker has        : ciphertext + public key (e=7, n=15)
+05/06/2026 19:01:19[EST]   Attacker does NOT have: private key d
+05/06/2026 19:01:19[EST]
+05/06/2026 19:01:19[EST]   Known plaintext char  : 'm'  (CHARSET index 13)
+05/06/2026 19:01:19[EST]   Known ciphertext val  : 7
+05/06/2026 19:01:19[EST]   Brute-force CPU found : d = 3  in 3700 ns
+05/06/2026 19:01:19[EST]   Decryption SUCCESS    : True  (d=3 also decrypts correctly -- valid RSA alias)
+05/06/2026 19:01:24[EST]
+05/06/2026 19:01:24[EST]   Available backends   : ibm_fez, ibm_marrakesh, ibm_kingston
+05/06/2026 19:01:24[EST]   Post-transpile depth : 394
+05/06/2026 19:01:24[EST]   Gate count           : {'rz': 212, 'sx': 190, 'cz': 89, 'measure': 4}
+05/06/2026 19:01:24[EST]   Depth is within reliable range for NISQ hardware.
+05/06/2026 19:01:25[EST]
+05/06/2026 19:01:25[EST]   Backend    : ibm_kingston
+05/06/2026 19:01:25[EST]   Qubits     : 4,  Iterations: 2,  Shots: 1024
+05/06/2026 19:01:25[EST]   Job ID     : d7tsgh4t738s73cia8ug
+05/06/2026 19:19:27[EST]
+05/06/2026 19:19:27[EST]   True private key d (hidden)  : 0111 = 7
+05/06/2026 19:19:27[EST]   Private key found by Grover  : 0111 = 7
+05/06/2026 19:19:27[EST]   Key match                    : True
+05/06/2026 19:19:27[EST]
+05/06/2026 19:19:27[EST]   Original plaintext           : 'mankind and machine'
+05/06/2026 19:19:27[EST]   RSA ciphertext               :  [7, 1, 14, 11, 9, 14, 4, 0, 1, 14, 4, 0, 7, 1, 12, 2, 9, 14, 5]
+05/06/2026 19:19:27[EST]   Quantum-decrypted message    : 'mankind and machine'
+05/06/2026 19:19:27[EST]   Decryption SUCCESS           : True
+05/06/2026 19:19:27[EST]
+05/06/2026 19:19:27[EST]   Top 5 measured states (most frequent = Grover's answer):
+05/06/2026 19:19:27[EST]     0111 (d= 7) :  573 shots  ( 56.0%)  <-- TRUE PRIVATE KEY
+05/06/2026 19:19:27[EST]     0110 (d= 6) :   55 shots  (  5.4%)
+05/06/2026 19:19:27[EST]     0100 (d= 4) :   42 shots  (  4.1%)
+05/06/2026 19:19:27[EST]     0101 (d= 5) :   40 shots  (  3.9%)
+05/06/2026 19:19:27[EST]     0000 (d= 0) :   40 shots  (  3.9%)
+05/06/2026 19:19:27[EST]
+05/06/2026 19:19:27[EST]   TIMING BREAKDOWN
+05/06/2026 19:19:27[EST]   [total]   Total wall-clock   : 1082.781 s
+05/06/2026 19:19:27[EST]   [queue]   Queue wait         : 941.389 s  (IBM busy -- does NOT count against quota)
+05/06/2026 19:19:27[EST]   [slot]    QPU slot window    : 140.504 s
+05/06/2026 19:19:27[EST]   [***QPU]  Pure QPU gate time : 4.000 s   *** counts against quota ***
+05/06/2026 19:19:27[EST]
+05/06/2026 19:19:27[EST]   [cpu]     Brute-force CPU    : 3700 ns  (3.700 us)
+05/06/2026 19:19:27[EST]   [***QPU]  Pure QPU gate time : 4.000 s
+05/06/2026 19:19:27[EST]   [ratio]   QPU is 1081090x slower at 4 bits  (advantage threshold ~34 qubits)
+```
+
+The quantum chip found the correct private key `0111` with **56.0% of all shots** — more than 10x the probability of any other candidate. Full end-to-end: random key picked, random message picked, IBM hardware found the key, original text recovered exactly.
+
+---
+
 ## Lessons Learned from Real Hardware Runs
 
 ### 1. Circuit depth is the hard wall on current hardware
