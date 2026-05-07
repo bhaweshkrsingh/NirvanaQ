@@ -104,7 +104,13 @@ def rsa_encrypt(msg, e, n):
     return [pow(CHARSET.index(c), e, n) for c in msg]
 
 def rsa_decrypt(ciphertext, d, n):
-    return "".join(CHARSET[pow(c, d, n)] for c in ciphertext)
+    chars = []
+    for c in ciphertext:
+        idx = pow(c, d, n)
+        if idx >= len(CHARSET):
+            return None   # wrong key produces out-of-range index
+        chars.append(CHARSET[idx])
+    return "".join(chars)
 
 cipher_list = rsa_encrypt(plaintext_msg, e_pub, n_rsa)
 
@@ -157,7 +163,7 @@ for candidate_d in range(1, n_rsa):
 bf_elapsed_ns = (time.perf_counter() - bf_start) * 1e9
 bf_elapsed_us = bf_elapsed_ns / 1e3
 
-bf_decrypted  = rsa_decrypt(cipher_list, bf_found_key, n_rsa) if bf_found_key else "NOT FOUND"
+bf_decrypted  = rsa_decrypt(cipher_list, bf_found_key, n_rsa) if bf_found_key else None
 bf_success    = (bf_decrypted == plaintext_msg)
 
 p(f"  Checks performed      : {bf_checks}")
@@ -228,21 +234,23 @@ MY_IBM_QUANTUM_KEY = os.getenv("MY_IBM_QUANTUM_KEY")
 if not MY_IBM_QUANTUM_KEY:
     raise ValueError("Set the MY_IBM_QUANTUM_KEY environment variable before running.")
 
-_devnull     = open(os.devnull, "w")
-_real_stderr = sys.stderr
-sys.stdout   = _devnull
-sys.stderr   = _devnull
-
+# Connect, pick shortest-queue backend, and transpile.
+# Backend status query is done BEFORE stdout redirect so errors surface cleanly.
 QiskitRuntimeService.save_account(
     channel="ibm_quantum_platform", token=MY_IBM_QUANTUM_KEY, overwrite=True
 )
 service       = QiskitRuntimeService(channel="ibm_quantum_platform")
 backends_list = ", ".join(b.name for b in service.backends(operational=True, simulator=False))
 _candidates   = [service.backend(b) for b in ("ibm_kingston", "ibm_fez", "ibm_marrakesh")]
-backend       = min(_candidates, key=lambda b: b.status().pending_jobs)
-pm            = generate_preset_pass_manager(backend=backend, optimization_level=1)
-isa_circuit   = pm.run(qc)
+_pending      = {b.name: b.status().pending_jobs for b in _candidates}
+backend       = min(_candidates, key=lambda b: _pending[b.name])
 
+_devnull     = open(os.devnull, "w")
+_real_stderr = sys.stderr
+sys.stdout   = _devnull
+sys.stderr   = _devnull
+pm          = generate_preset_pass_manager(backend=backend, optimization_level=1)
+isa_circuit = pm.run(qc)
 sys.stdout = _terminal
 sys.stderr = _real_stderr
 _devnull.close()
@@ -252,7 +260,8 @@ p("=" * 65)
 p("STEP 3 -- IBM QUANTUM CONNECTION + TRANSPILE")
 p("=" * 65)
 p(f"  Available backends   : {backends_list}")
-p(f"  Shortest queue chosen: {backend.name}  (pending jobs: {backend.status().pending_jobs})")
+p(f"  Pending jobs         : { {n: v for n,v in _pending.items()} }")
+p(f"  Shortest queue chosen: {backend.name}  ({_pending[backend.name]} pending)")
 p(f"  Post-transpile depth : {isa_circuit.depth()}")
 p(f"  Gate count           : {dict(isa_circuit.count_ops())}")
 if isa_circuit.depth() > 600:
